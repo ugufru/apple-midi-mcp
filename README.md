@@ -22,7 +22,7 @@ Claude Code  ←─ stdio (JSON-RPC 2.0) ─→  apple-midi-mcp  ←─ CoreMIDI
 **Components:**
 - `src/main.cpp` — Entry point, stdio read loop
 - `src/mcp_handler.h/cpp` — JSON-RPC & MCP protocol handling (initialize, tools/list, tools/call)
-- `src/midi_manager.h/cpp` — CoreMIDI wrapper (enumerate, send, receive, buffer)
+- `src/midi_bridge.h/cpp` — CoreMIDI wrapper (enumerate, send, receive, buffer)
 
 **Dependencies (minimal):**
 - Apple CoreMIDI.framework (ships with macOS)
