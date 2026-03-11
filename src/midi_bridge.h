@@ -48,6 +48,7 @@ private:
     std::mutex bufferMutex_;
     std::map<int, std::deque<MIDIMessageData>> buffers_;
     std::map<int, MIDIEndpointRef> openSources_;
+    std::map<int, std::vector<uint8_t>> sysexPending_; // SysEx reassembly per source
 
     static void readProc(const MIDIPacketList* pktlist, void* readProcRefCon, void* srcConnRefCon);
     void handlePackets(const MIDIPacketList* pktlist, int sourceId);

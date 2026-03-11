@@ -1,17 +1,15 @@
 # Apple MIDI MCP
 
-An experimental MCP (Model Context Protocol) server that provides direct access to Apple's CoreMIDI Manager from any MCP client (e.g., Claude Code). Written in C++ for minimal overhead and direct framework access.
+A native C++ MCP (Model Context Protocol) server that provides direct access to Apple's CoreMIDI from any MCP client (e.g., Claude Code). Bidirectional MIDI I/O with SysEx support — send, receive, and interact with hardware synths in real time.
 
-## Overview
+## What makes this different
 
-This MCP server communicates over **stdio** using JSON-RPC 2.0 — no HTTP, no WebSocket, no additional runtime. Claude Code spawns the binary and talks to it directly. The server wraps Apple's CoreMIDI C API to expose MIDI device enumeration, message sending, and message receiving as MCP tools.
+There are several MIDI MCP servers out there (see [Related Projects](#related-projects)). This one is unique in a few ways:
 
-## Features
-
-- Enumerate available MIDI interfaces by name and port.
-- Send MIDI messages targeted to specific ports.
-- Receive MIDI messages from specific ports.
-- Active ports log and buffer incoming MIDI data (FIFO — data streamed to the client is removed from the buffer).
+- **Native C++/CoreMIDI** — no Python runtime, no Node.js, no rtmidi wrapper. Direct framework access with minimal overhead.
+- **Bidirectional I/O** — not just send-only. Open a port, buffer incoming MIDI, and read it back. The LLM can *listen* to your instruments.
+- **SysEx support** — request and receive SysEx dumps from your synths. Patch management, device identification, parameter editing.
+- **stdio transport** — proper MCP over JSON-RPC 2.0. No HTTP server, no WebSocket. Claude Code spawns the binary and talks to it directly.
 
 ## Architecture
 
@@ -20,21 +18,21 @@ Claude Code  ←─ stdio (JSON-RPC 2.0) ─→  apple-midi-mcp  ←─ CoreMIDI
 ```
 
 **Components:**
-- `src/main.cpp` — Entry point, stdio read loop
+- `src/main.cpp` — Entry point, stdio read loop, signal handling
 - `src/mcp_handler.h/cpp` — JSON-RPC & MCP protocol handling (initialize, tools/list, tools/call)
-- `src/midi_bridge.h/cpp` — CoreMIDI wrapper (enumerate, send, receive, buffer)
+- `src/midi_bridge.h/cpp` — CoreMIDI wrapper (enumerate, send, receive, SysEx, buffer)
 
 **Dependencies (minimal):**
 - Apple CoreMIDI.framework (ships with macOS)
 - [nlohmann/json](https://github.com/nlohmann/json) — single header-only JSON library
 - clang++ (Xcode Command Line Tools)
 
-## MCP Tools Exposed
+## MCP Tools
 
 | Tool | Description |
 |------|-------------|
-| `list_devices` | Enumerate all MIDI sources and destinations with names and port IDs |
-| `send_message` | Send a MIDI message (note on/off, CC, etc.) to a specific destination |
+| `list_devices` | Enumerate all MIDI sources and destinations with names and unique IDs |
+| `send_message` | Send MIDI messages (note on/off, CC, SysEx, etc.) to a destination |
 | `open_port` | Start listening on a MIDI source, buffering incoming messages |
 | `read_buffer` | Read and flush buffered MIDI messages from an open port |
 | `close_port` | Stop listening on a MIDI source |
@@ -43,6 +41,7 @@ Claude Code  ←─ stdio (JSON-RPC 2.0) ─→  apple-midi-mcp  ←─ CoreMIDI
 
 ```bash
 make          # builds apple-midi-mcp binary
+make test     # runs protocol test suite
 make clean    # remove build artifacts
 ```
 
@@ -60,32 +59,57 @@ Add to your Claude Code MCP config (`~/.claude/claude_mcp_settings.json`):
 }
 ```
 
+Restart Claude Code after adding the config.
+
+## Usage examples
+
+Once installed, Claude Code can interact with your MIDI hardware directly:
+
+- **"List my MIDI devices"** — enumerates all connected interfaces and ports
+- **"Send a C major chord to port 1"** — sends note-on messages to a synth
+- **"Listen on port 3 and tell me what notes I'm playing"** — opens a port, buffers input, reads it back
+- **"Send a SysEx identity request to my Blofeld on port 3"** — queries a synth via SysEx and reads the response
+- **"Play a drum pattern on port 10"** — sends sequenced drum hits to a drum machine
+
 ## Roadmap
 
-### Phase 1 — Foundation (current)
+### Phase 1 — Foundation (complete)
 - [x] Project setup (repo, README, issue tracking)
-- [ ] Scaffold project structure (Makefile, src layout)
-- [ ] Implement JSON-RPC 2.0 / MCP protocol handler over stdio
-- [ ] Implement CoreMIDI device enumeration
-- [ ] Wire up main entry point, build, and test with Claude Code
+- [x] Scaffold project structure (Makefile, src layout)
+- [x] JSON-RPC 2.0 / MCP protocol handler over stdio
+- [x] CoreMIDI device enumeration
+- [x] Main entry point, build, and live test with Claude Code
 
-### Phase 2 — Core MIDI Operations
-- [ ] Send MIDI messages (note on/off, CC, program change)
-- [ ] Receive MIDI messages with FIFO buffering
-- [ ] Port open/close lifecycle management
-- [ ] Error handling and validation
+### Phase 2 — Core MIDI Operations (in progress)
+- [x] Send MIDI messages (note on/off, CC, program change)
+- [x] Receive MIDI messages with FIFO buffering
+- [x] SysEx send and receive with reassembly
+- [ ] SMF (Standard MIDI File) playback with timing
+- [ ] Error handling and input validation
 
 ### Phase 3 — Extended Features
-- [ ] SysEx message support (with safety guardrails)
-- [ ] MIDI channel filtering
 - [ ] Virtual MIDI port creation
 - [ ] Device hot-plug detection
+- [ ] MIDI channel filtering
 
 ### Phase 4 — Polish
 - [ ] Comprehensive logging (stderr)
-- [ ] Graceful shutdown handling
 - [ ] Performance profiling for low-latency use cases
 - [ ] Documentation and usage examples
+
+## Related Projects
+
+Other MCP servers with MIDI functionality:
+
+| Project | Language | Description |
+|---------|----------|-------------|
+| [sandst1/mcp-server-midi](https://github.com/sandst1/mcp-server-midi) | Python | Virtual MIDI port via rtmidi, send-only, HTTP/SSE transport |
+| [benjaminr/mcp-koii](https://github.com/benjaminr/mcp-koii) | Python | Teenage Engineering EP-133 K.O. II control via mido |
+| [guyko/midimcp](https://github.com/guyko/midimcp) | Kotlin | Guitar pedal control (Meris, Neural DSP, Eventide) with SysEx |
+| [necobit/mcp-midi-server](https://github.com/necobit/mcp-midi-server) | Python | Basic MIDI send via python-rtmidi |
+| [tubone24/midi-mcp-server](https://github.com/tubone24/midi-mcp-server) | JavaScript | MIDI file generation (no hardware I/O) |
+| [xiaolaa2/midi-file-mcp](https://github.com/xiaolaa2/midi-file-mcp) | JavaScript | MIDI file parsing and manipulation |
+| [s2d01/daw-midi-generator-mcp](https://github.com/s2d01/daw-midi-generator-mcp) | Python | MIDI file generation for DAW import |
 
 ## License
 
