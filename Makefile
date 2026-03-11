@@ -23,4 +23,7 @@ $(BUILDDIR):
 clean:
 	rm -rf $(BUILDDIR) $(TARGET)
 
-.PHONY: all clean
+test: $(TARGET)
+	@bash test/test_protocol.sh ./$(TARGET)
+
+.PHONY: all clean test
