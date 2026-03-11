@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "apple-midi": {
+      "type": "stdio",
+      "command": "/Users/paul/github/apple-midi-mcp/apple-midi-mcp",
+      "args": []
+    }
+  }
+}

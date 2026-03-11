@@ -27,8 +27,15 @@ json McpHandler::handleRequest(const json& request) {
 
 json McpHandler::handleInitialize(const json& request) {
     json id = request["id"];
+
+    // Echo back the client's requested protocol version if we support it
+    std::string clientVersion = "2024-11-05";
+    if (request.contains("params") && request["params"].contains("protocolVersion")) {
+        clientVersion = request["params"]["protocolVersion"];
+    }
+
     return makeResponse(id, {
-        {"protocolVersion", "2024-11-05"},
+        {"protocolVersion", clientVersion},
         {"capabilities", {
             {"tools", json::object()}
         }},
