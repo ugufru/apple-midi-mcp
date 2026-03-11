@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <mutex>
+#include <atomic>
 #include <deque>
 #include <cstdint>
 
@@ -50,6 +51,23 @@ private:
     std::map<int, MIDIEndpointRef> openSources_;
     std::map<int, std::vector<uint8_t>> sysexPending_; // SysEx reassembly per source
 
+    // Debug counters
+    std::atomic<int> dbgCallbacks_{0};
+    std::atomic<int> dbgPackets_{0};
+    std::atomic<int> dbgSysexStarts_{0};
+    std::atomic<int> dbgSysexComplete_{0};
+    std::atomic<int> dbgRegularMsgs_{0};
+
+public:
+    struct DebugStats {
+        int callbacks, packets, sysexStarts, sysexComplete, regularMsgs;
+    };
+    DebugStats getDebugStats() const {
+        return {dbgCallbacks_.load(), dbgPackets_.load(), dbgSysexStarts_.load(),
+                dbgSysexComplete_.load(), dbgRegularMsgs_.load()};
+    }
+
+private:
     static void readProc(const MIDIPacketList* pktlist, void* readProcRefCon, void* srcConnRefCon);
     void handlePackets(const MIDIPacketList* pktlist, int sourceId);
 

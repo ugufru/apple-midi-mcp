@@ -206,9 +206,23 @@ json McpHandler::toolReadBuffer(const json& args) {
         });
     }
 
+    auto stats = midi_.getDebugStats();
+    json debugInfo = {
+        {"callbacks", stats.callbacks},
+        {"packets", stats.packets},
+        {"sysex_starts", stats.sysexStarts},
+        {"sysex_complete", stats.sysexComplete},
+        {"regular_msgs", stats.regularMsgs}
+    };
+
+    json result = {
+        {"messages", msgArray},
+        {"debug", debugInfo}
+    };
+
     return {
         {"content", json::array({
-            {{"type", "text"}, {"text", msgArray.dump(2)}}
+            {{"type", "text"}, {"text", result.dump(2)}}
         })}
     };
 }

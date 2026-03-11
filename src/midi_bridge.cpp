@@ -71,27 +71,9 @@ bool MidiBridge::sendMessage(int destinationId, const std::vector<uint8_t>& byte
         return false;
     }
 
-    // Use MIDISendSysex for SysEx messages (starts with F0)
+    // Log SysEx sends
     if (!bytes.empty() && bytes[0] == 0xF0) {
-        MIDISysexSendRequest req = {};
-        req.destination = dest;
-        req.data = bytes.data();
-        req.bytesToSend = static_cast<UInt32>(bytes.size());
-        req.complete = false;
-        req.completionProc = nullptr;
-        req.completionRefCon = nullptr;
-
-        OSStatus status = MIDISendSysex(&req);
-        if (status != noErr) {
-            std::cerr << "[midi] Failed to send SysEx: " << status << std::endl;
-            return false;
-        }
-
-        // MIDISendSysex is async — wait for completion
-        while (!req.complete) {
-            usleep(100);
-        }
-        return true;
+        std::cerr << "[midi] Sending SysEx (" << bytes.size() << " bytes) via MIDISend to dest " << destinationId << std::endl;
     }
 
     // Regular MIDI messages use MIDISend
@@ -179,17 +161,31 @@ void MidiBridge::handlePackets(const MIDIPacketList* pktlist, int sourceId) {
     auto it = buffers_.find(sourceId);
     if (it == buffers_.end()) return;
 
+    dbgCallbacks_++;
     const MIDIPacket* packet = &pktlist->packet[0];
     for (UInt32 i = 0; i < pktlist->numPackets; i++) {
+        dbgPackets_++;
         const uint8_t* data = packet->data;
         UInt16 len = packet->length;
 
+        // Debug: log every incoming packet
+        std::cerr << "[midi-rx] src=" << sourceId << " pkt " << i
+                  << "/" << pktlist->numPackets << " len=" << len;
+        if (len > 0) {
+            std::cerr << " first=0x" << std::hex << (int)data[0];
+            if (len > 1) std::cerr << " last=0x" << (int)data[len-1];
+            std::cerr << std::dec;
+        }
+        std::cerr << std::endl;
+
         if (len > 0 && data[0] == 0xF0) {
+            dbgSysexStarts_++;
             // Start of SysEx — check if complete in this packet
             auto& pending = sysexPending_[sourceId];
             pending.assign(data, data + len);
             if (data[len - 1] == 0xF7) {
                 // Complete SysEx in one packet
+                dbgSysexComplete_++;
                 MIDIMessageData msg;
                 msg.bytes = std::move(pending);
                 msg.timestamp = packet->timeStamp;
@@ -202,6 +198,7 @@ void MidiBridge::handlePackets(const MIDIPacketList* pktlist, int sourceId) {
             pending.insert(pending.end(), data, data + len);
             if (len > 0 && data[len - 1] == 0xF7) {
                 // SysEx complete
+                dbgSysexComplete_++;
                 MIDIMessageData msg;
                 msg.bytes = std::move(pending);
                 msg.timestamp = packet->timeStamp;
@@ -210,6 +207,7 @@ void MidiBridge::handlePackets(const MIDIPacketList* pktlist, int sourceId) {
             }
         } else {
             // Regular MIDI message
+            dbgRegularMsgs_++;
             MIDIMessageData msg;
             msg.bytes.assign(data, data + len);
             msg.timestamp = packet->timeStamp;
