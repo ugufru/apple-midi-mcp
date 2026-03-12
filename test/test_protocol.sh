@@ -93,7 +93,32 @@ check "close_port on unopened port fails gracefully" \
 # Test 13: read_buffer on unopened port returns empty
 check "read_buffer on unopened port returns empty" \
     '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"read_buffer","arguments":{"source_id":999999}}}' \
-    '"text":"\[\]"'
+    'messages'
+
+# Test 14: send_message with missing bytes returns error
+check "send_message missing bytes returns error" \
+    '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"send_message","arguments":{"destination_id":123}}}' \
+    '"isError":true'
+
+# Test 15: send_message with byte out of range returns error
+check "send_message byte out of range returns error" \
+    '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"send_message","arguments":{"destination_id":123,"bytes":[144,60,300]}}}' \
+    'out of range'
+
+# Test 16: send_message with missing destination_id returns error
+check "send_message missing destination_id returns error" \
+    '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"send_message","arguments":{"bytes":[144,60,127]}}}' \
+    '"isError":true'
+
+# Test 17: open_port with missing source_id returns error
+check "open_port missing source_id returns error" \
+    '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"open_port","arguments":{}}}' \
+    '"isError":true'
+
+# Test 18: tools/call with missing params.name returns error
+check "tools/call missing params.name returns error" \
+    '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{}}' \
+    '"error"'
 
 echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="

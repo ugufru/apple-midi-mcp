@@ -116,7 +116,12 @@ json McpHandler::handleToolsList(const json& request) {
 }
 
 json McpHandler::handleToolsCall(const json& request) {
-    json id = request["id"];
+    json id = request.contains("id") ? request["id"] : json(nullptr);
+
+    if (!request.contains("params") || !request["params"].contains("name")) {
+        return makeError(id, -32602, "Missing params.name in tools/call");
+    }
+
     std::string toolName = request["params"]["name"];
     json args = request["params"].value("arguments", json::object());
 
@@ -160,10 +165,36 @@ json McpHandler::toolListDevices(const json& /*args*/) {
 }
 
 json McpHandler::toolSendMessage(const json& args) {
+    if (!args.contains("destination_id") || !args["destination_id"].is_number_integer()) {
+        return {
+            {"content", json::array({{{"type", "text"}, {"text", "Missing or invalid 'destination_id' (integer required)"}}})},
+            {"isError", true}
+        };
+    }
+    if (!args.contains("bytes") || !args["bytes"].is_array() || args["bytes"].empty()) {
+        return {
+            {"content", json::array({{{"type", "text"}, {"text", "Missing or empty 'bytes' array"}}})},
+            {"isError", true}
+        };
+    }
+
     int destId = args["destination_id"];
     std::vector<uint8_t> bytes;
     for (const auto& b : args["bytes"]) {
-        bytes.push_back(static_cast<uint8_t>(b.get<int>()));
+        if (!b.is_number_integer()) {
+            return {
+                {"content", json::array({{{"type", "text"}, {"text", "Each byte must be an integer"}}})},
+                {"isError", true}
+            };
+        }
+        int val = b.get<int>();
+        if (val < 0 || val > 255) {
+            return {
+                {"content", json::array({{{"type", "text"}, {"text", "Byte value out of range (0-255): " + std::to_string(val)}}})},
+                {"isError", true}
+            };
+        }
+        bytes.push_back(static_cast<uint8_t>(val));
     }
 
     bool ok = midi_.sendMessage(destId, bytes);
@@ -178,6 +209,12 @@ json McpHandler::toolSendMessage(const json& args) {
 }
 
 json McpHandler::toolOpenPort(const json& args) {
+    if (!args.contains("source_id") || !args["source_id"].is_number_integer()) {
+        return {
+            {"content", json::array({{{"type", "text"}, {"text", "Missing or invalid 'source_id' (integer required)"}}})},
+            {"isError", true}
+        };
+    }
     int sourceId = args["source_id"];
     bool ok = midi_.openPort(sourceId);
     std::string msg = ok ? "Port opened, listening for MIDI messages" : "Failed to open port";
@@ -191,6 +228,12 @@ json McpHandler::toolOpenPort(const json& args) {
 }
 
 json McpHandler::toolReadBuffer(const json& args) {
+    if (!args.contains("source_id") || !args["source_id"].is_number_integer()) {
+        return {
+            {"content", json::array({{{"type", "text"}, {"text", "Missing or invalid 'source_id' (integer required)"}}})},
+            {"isError", true}
+        };
+    }
     int sourceId = args["source_id"];
     auto messages = midi_.readBuffer(sourceId);
 
@@ -228,6 +271,12 @@ json McpHandler::toolReadBuffer(const json& args) {
 }
 
 json McpHandler::toolClosePort(const json& args) {
+    if (!args.contains("source_id") || !args["source_id"].is_number_integer()) {
+        return {
+            {"content", json::array({{{"type", "text"}, {"text", "Missing or invalid 'source_id' (integer required)"}}})},
+            {"isError", true}
+        };
+    }
     int sourceId = args["source_id"];
     bool ok = midi_.closePort(sourceId);
     std::string msg = ok ? "Port closed" : "Port was not open";

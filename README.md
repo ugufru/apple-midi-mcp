@@ -84,8 +84,8 @@ Once installed, Claude Code can interact with your MIDI hardware directly:
 - [x] Send MIDI messages (note on/off, CC, program change)
 - [x] Receive MIDI messages with FIFO buffering
 - [x] SysEx send and receive with reassembly
+- [x] Error handling and input validation
 - [ ] SMF (Standard MIDI File) playback with timing
-- [ ] Error handling and input validation
 
 ### Phase 3 — Extended Features
 - [ ] Virtual MIDI port creation
