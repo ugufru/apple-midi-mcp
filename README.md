@@ -18,14 +18,14 @@ Claude Code  ←─ stdio (JSON-RPC 2.0) ─→  apple-midi-mcp  ←─ CoreMIDI
 ```
 
 **Components:**
-- `src/main.cpp` — Entry point, stdio read loop, signal handling
-- `src/mcp_handler.h/cpp` — JSON-RPC & MCP protocol handling (initialize, tools/list, tools/call)
+- `src/main.cpp` — Tool registration and entry point
+- `src/mcp_server.h/cpp` — Generic MCP server (JSON-RPC 2.0, NDJSON + Content-Length framing, tool dispatch)
 - `src/midi_bridge.h/cpp` — CoreMIDI wrapper (enumerate, send, receive, SysEx, buffer)
 
 **Dependencies (minimal):**
 - Apple CoreMIDI.framework (ships with macOS)
-- [nlohmann/json](https://github.com/nlohmann/json) — single header-only JSON library
-- clang++ (Xcode Command Line Tools)
+- [nlohmann/json](https://github.com/nlohmann/json) — fetched automatically by CMake
+- CMake 3.20+ and clang++ (Xcode Command Line Tools)
 
 ## MCP Tools
 
@@ -40,9 +40,10 @@ Claude Code  ←─ stdio (JSON-RPC 2.0) ─→  apple-midi-mcp  ←─ CoreMIDI
 ## Building
 
 ```bash
-make          # builds apple-midi-mcp binary
+make build    # builds apple-midi-mcp binary (CMake)
 make test     # runs protocol test suite
 make clean    # remove build artifacts
+make rebuild  # clean + build
 ```
 
 ## Installation
@@ -80,22 +81,23 @@ Once installed, Claude Code can interact with your MIDI hardware directly:
 - [x] CoreMIDI device enumeration
 - [x] Main entry point, build, and live test with Claude Code
 
-### Phase 2 — Core MIDI Operations (in progress)
+### Phase 2 — Core MIDI Operations (complete)
 - [x] Send MIDI messages (note on/off, CC, program change)
 - [x] Receive MIDI messages with FIFO buffering
 - [x] SysEx send and receive with reassembly
 - [x] Error handling and input validation
-- [ ] SMF (Standard MIDI File) playback with timing
 
-### Phase 3 — Extended Features
+### Phase 3 — Robustness & Consistency (complete)
+- [x] Generic McpServer class with `add_tool()` registration
+- [x] Content-Length framing support (auto-detect NDJSON vs LSP-style)
+- [x] CMake build system with FetchContent for dependencies
+- [x] Tool exception safety (try/catch around dispatch)
+- [x] Fixed protocol version negotiation
+
+### Phase 4 — Extended Features
+- [ ] SMF (Standard MIDI File) playback with timing
 - [ ] Virtual MIDI port creation
 - [ ] Device hot-plug detection
-- [ ] MIDI channel filtering
-
-### Phase 4 — Polish
-- [ ] Comprehensive logging (stderr)
-- [ ] Performance profiling for low-latency use cases
-- [ ] Documentation and usage examples
 
 ## Related Projects
 
