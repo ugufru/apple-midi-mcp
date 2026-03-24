@@ -1,29 +1,17 @@
-CXX = clang++
-SYSROOT := $(shell xcrun --show-sdk-path)
-CXXFLAGS = -std=c++17 -Wall -Wextra -O2 -I deps -isysroot $(SYSROOT) -I$(SYSROOT)/usr/include/c++/v1
-LDFLAGS = -framework CoreMIDI -framework CoreFoundation
-TARGET = apple-midi-mcp
-SRCDIR = src
+.PHONY: build clean rebuild test
+
 BUILDDIR = build
+TARGET = apple-midi-mcp
 
-SRCS = $(SRCDIR)/main.cpp $(SRCDIR)/mcp_handler.cpp $(SRCDIR)/midi_bridge.cpp
-OBJS = $(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR)/%.o,$(SRCS))
-
-all: $(TARGET)
-
-$(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
-
-$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp | $(BUILDDIR)
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
-
-$(BUILDDIR):
-	mkdir -p $(BUILDDIR)
+build:
+	@mkdir -p $(BUILDDIR)
+	@cd $(BUILDDIR) && cmake .. && make -j$(shell sysctl -n hw.ncpu)
+	@ln -sf $(BUILDDIR)/$(TARGET) $(TARGET)
 
 clean:
-	rm -rf $(BUILDDIR) $(TARGET)
+	@rm -rf $(BUILDDIR) $(TARGET)
 
-test: $(TARGET)
+rebuild: clean build
+
+test: build
 	@bash test/test_protocol.sh ./$(TARGET)
-
-.PHONY: all clean test

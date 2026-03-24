@@ -4,9 +4,8 @@ apple-midi-mcp
 *.o
 *.d
 
-# Dependencies (downloaded) - but track json.hpp
-deps/*
-!deps/json.hpp
+# Dependencies (fetched by CMake)
+deps/
 
 # macOS
 .DS_Store
